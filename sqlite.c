@@ -3,6 +3,15 @@
 #include <stdbool.h>
 #include <string.h>
 
+// Create two constants
+// One to define the number of characters allowed in the username
+// One to define the number of characters allowed in the email
+// For Row
+#define COLUMN_USERNAME_SIZE 32
+#define COLUMN_EMAIL_SIZE 255
+// Define a compact representation of a row
+#define size_of_attribute(Struct, Attribute) sizeof(((Struct*)0)->Attribute)
+
 // This is the input buffer used to store the input from stdin
 // It contains 3 properties:
 // buffer (The actual string)
@@ -35,12 +44,31 @@ typedef enum {
   STATEMENT_SELECT
 } StatementType;
 
+// Create a type to define the row
+// That will be accepted by the 
+// insert statement
+typedef struct {
+  uint32_t id;
+  char username[COLUMN_USERNAME_SIZE];
+  char email[COLUMN_EMAIL_SIZE];
+} Row;
+
 // Create type to classify statement
 // to determine preparation success or failure
 // to execute correctly
 typedef struct {
   StatementType type;
+  Row row_to_insert; // Only used by insert statement
 } Statement;
+
+// DESCRIBE WHY EACH ONE OF THESE CONSTANTS IS REQUIRED
+const uint32_t ID_SIZE = size_of_attribute(Row, id);
+const uint32_t USERNAME_SIZE = size_of_attribute(Row, username);
+const uint32_t EMAIL_SIZE = size_of_attribute(Row, email);
+const uint32_t ID_OFFSET = 0;
+const uint32_t USERNAME_OFFSET = ID_OFFSET + ID_SIZE;
+const uint32_t EMAIL_OFFSET = USERNAME_OFFSET + USERNAME_SIZE;
+const uint32_t ROW_SIZE = ID_SIZE + USERNAME_SIZE + EMAIL_SIZE;
 
 // inline functions to replace every instance of this
 // function call in the program. This works well because
@@ -188,6 +216,11 @@ MetaCommandResult do_meta_command(InputBuffer* input_buffer) {
 PrepareResult prepare_statement(InputBuffer* input_buffer, Statement* statement) {
   if (strncmp(input_buffer->buffer, "insert", 6) == 0) {
     statement->type = STATEMENT_INSERT;
+    // DESCRIBE THIS
+    int args_assigned = sscanf(input_buffer->buffer, "insert %d %s %s", &(statement->row_to_insert.id), statement->row_to_insert.username, statement->row_to_insert.email);
+    if (args_assigned < 3) {
+      return PREPARE_SYNTAX_ERROR;
+    }
     return PREPARE_SUCCESS;
   }
 
