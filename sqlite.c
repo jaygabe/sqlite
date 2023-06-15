@@ -11,6 +11,8 @@
 #define COLUMN_EMAIL_SIZE 255
 // Define a compact representation of a row
 #define size_of_attribute(Struct, Attribute) sizeof(((Struct*)0)->Attribute)
+// Define the number of pages allowed per table
+#define TABLE_MAX_PAGES 100
 
 // This is the input buffer used to store the input from stdin
 // It contains 3 properties:
@@ -69,6 +71,16 @@ const uint32_t ID_OFFSET = 0;
 const uint32_t USERNAME_OFFSET = ID_OFFSET + ID_SIZE;
 const uint32_t EMAIL_OFFSET = USERNAME_OFFSET + USERNAME_SIZE;
 const uint32_t ROW_SIZE = ID_SIZE + USERNAME_SIZE + EMAIL_SIZE;
+// Define some constants to describe tables, pages, and rows
+const uint32_t PAGE_SIZE = 4096;
+const uint32_t ROWS_PER_PAGE = PAGE_SIZE / ROW_SIZE;
+const uint32_t TABLE_MAX_ROWS = ROWS_PER_PAGE * TABLE_MAX_PAGES;
+
+// Define a struct to represent a table
+typedef struct {
+  uint32_t num_rows;
+  void* pages[TABLE_MAX_PAGES];
+} Table;
 
 // inline functions to replace every instance of this
 // function call in the program. This works well because
@@ -86,8 +98,16 @@ void close_input_buffer(InputBuffer* input_buffer);
 MetaCommandResult do_meta_command(InputBuffer* input_buffer);
 // Handle the SQL commands
 PrepareResult prepare_statement(InputBuffer* input_buffer, Statement* statement);
+// Execute the INSERT command
+ExecuteResult execute_insert(Statement* statement);
 // Execute the SQL command based on statement type
-void execute_statement(Statement* statement);
+ExecuteResult execute_statement(Statement* statement);
+// Convert to the compact representation of row
+void serialize_row(Row* source, void* destination);
+// Convert from the compact representation of row
+void deserialize_row(void* source, Row* destination);
+// To figure out where to read/write in memory for a particular row
+void* row_slot(Table* table, uint32_t row_num);
 
 int main(int argc, char* argv[])
 {
@@ -233,7 +253,13 @@ PrepareResult prepare_statement(InputBuffer* input_buffer, Statement* statement)
 }
 
 // DESCRIBE THIS FUNCTION
-void execute_statement(Statement* statement) {
+ExecuteResult execute_insert(Statement* statement) {
+  // TODO
+}
+
+// DESCRIBE THIS FUNCTION
+ExecuteResult execute_statement(Statement* statement) {
+  // TODO MAKE CHANGES
   switch (statement->type) {
     case (STATEMENT_INSERT):
       printf("This is where we will do an insert\n");
@@ -242,4 +268,31 @@ void execute_statement(Statement* statement) {
       printf("This is where we will do a select\n");
       break;
   }
+}
+
+// Describe the compacting the representation of a row
+void serialize_row(Row* source, void* destination) {
+  memcpy(destination + ID_OFFSET, &(source->id), ID_SIZE);
+  memcpy(destination + USERNAME_OFFSET, &(source->username), USERNAME_SIZE);
+  memcpy(destination + EMAIL_OFFSET, &(source->email), EMAIL_SIZE);
+}
+// Describe uncompacting the representation of a row
+void deserialize_row(void* source, Row* destination) {
+  memcpy(&(destination->id), source + ID_OFFSET, ID_SIZE);
+  memcpy(&(destination->username), source + USERNAME_OFFSET, USERNAME_SIZE);
+  memcpy(&(destination->email), source + EMAIL_OFFSET, EMAIL_SIZE);
+}
+
+// Describe the implementation details for 
+// figuring out where to read/write in memory for a particular row
+void* row_slot(Table* table, uint32_t row_num) {
+  uint32_t page_num = row_num / ROWS_PER_PAGE;
+  void* page = table->pages[page_num];
+  if (page == NULL) {
+    // Allocate memory only when we try to access page
+    page = table->pages[page_num] = malloc(PAGE_SIZE);
+  }
+  uint32_t row_offset = row_num % ROWS_PER_PAGE;
+  uint32_t byte_offset = row_offset * ROW_SIZE;
+  return page + byte_offset;
 }
