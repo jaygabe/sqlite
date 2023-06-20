@@ -14,6 +14,13 @@
 // Define the number of pages allowed per table
 #define TABLE_MAX_PAGES 100
 
+// DEFINE AND DESCRIBE THE PURPOSE OF THIS
+typedef enum {
+  EXECUTE_SUCCESS,
+  EXECUTE_TABLE_FULL,
+  EXECUTE_DUPLICATE_KEY,
+} ExecuteResult;
+
 // This is the input buffer used to store the input from stdin
 // It contains 3 properties:
 // buffer (The actual string)
@@ -37,6 +44,9 @@ typedef enum {
 // insert
 typedef enum {
   PREPARE_SUCCESS,
+  PREPARE_NEGATIVE_ID,
+  PREPARE_STRING_TOO_LONG,
+  PREPARE_SYNTAX_ERROR,
   PREPARE_UNRECOGNIZED_STATEMENT
 } PrepareResult;
 
@@ -99,15 +109,21 @@ MetaCommandResult do_meta_command(InputBuffer* input_buffer);
 // Handle the SQL commands
 PrepareResult prepare_statement(InputBuffer* input_buffer, Statement* statement);
 // Execute the INSERT command
-ExecuteResult execute_insert(Statement* statement);
+ExecuteResult execute_insert(Statement* statement, Table* tables);
+// Execute the SELECT command
+ExecuteResult execute_select(Statement* statement, Table* table);
 // Execute the SQL command based on statement type
-ExecuteResult execute_statement(Statement* statement);
+ExecuteResult execute_statement(Statement* statement, Table* table);
 // Convert to the compact representation of row
 void serialize_row(Row* source, void* destination);
 // Convert from the compact representation of row
 void deserialize_row(void* source, Row* destination);
 // To figure out where to read/write in memory for a particular row
 void* row_slot(Table* table, uint32_t row_num);
+// Initialize the table
+Table* new_table();
+// Release the table memory
+void free_table(Table* table);
 
 int main(int argc, char* argv[])
 {
@@ -253,20 +269,37 @@ PrepareResult prepare_statement(InputBuffer* input_buffer, Statement* statement)
 }
 
 // DESCRIBE THIS FUNCTION
-ExecuteResult execute_insert(Statement* statement) {
-  // TODO
+ExecuteResult execute_insert(Statement* statement, Table* table) {
+  if (table->num_rows >= TABLE_MAX_ROWS) {
+    return EXECUTE_TABLE_FULL;
+  }
+
+  Row* row_to_insert = &(statement->row_to_insert);
+
+  serialize_row(row_to_insert, row_slot(table, table->num_rows));
+  table->num_rows += 1;
+
+  return EXECUTE_SUCCESS;
 }
 
 // DESCRIBE THIS FUNCTION
-ExecuteResult execute_statement(Statement* statement) {
+ExecuteResult execute_select(Statement* statement, Table* table) {
+  Row row;
+  for (uint32_t i = 0; i < table->num_rows; i++) {
+    deserialize_row(row_slot(table, i), &row);
+    print_row(&row);
+  }
+  return EXECUTE_SUCCESS;
+}
+
+// DESCRIBE THIS FUNCTION
+ExecuteResult execute_statement(Statement* statement, Table* table) {
   // TODO MAKE CHANGES
   switch (statement->type) {
     case (STATEMENT_INSERT):
-      printf("This is where we will do an insert\n");
-      break;
+      return execute_insert(statement, table);
     case (STATEMENT_SELECT):
-      printf("This is where we will do a select\n");
-      break;
+      return execute_select(statement, table);
   }
 }
 
@@ -295,4 +328,22 @@ void* row_slot(Table* table, uint32_t row_num) {
   uint32_t row_offset = row_num % ROWS_PER_PAGE;
   uint32_t byte_offset = row_offset * ROW_SIZE;
   return page + byte_offset;
+}
+
+// DESCRIBE THIS FUNCTION
+Table* new_table() {
+  Table* table = (Table*)malloc(sizeof(Table));
+  table->num_rows = 0;
+  for (uint32_t i = 0; i < TABLE_MAX_PAGES; i++) {
+    table->pages[i] = NULL;
+  }
+  return table;
+}
+
+// DESCRIBE THIS FUNCTION
+void free_table(Table* table) {
+  for (int i = 0; table->pages[i]; i++) {
+    free(table->pages[i]);
+  }
+  free(table);
 }
