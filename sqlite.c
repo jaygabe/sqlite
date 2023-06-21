@@ -2,13 +2,22 @@
 #include <stdlib.h>
 #include <stdbool.h>
 #include <string.h>
+#include <stdint.h>
 
-// Create two constants
-// One to define the number of characters allowed in the username
-// One to define the number of characters allowed in the email
-// For Row
+// Each row struct contains an id integer, a username string, and an email string
+// The COLUMN_USERNAME_SIZE is used to set the size of the username string
+// The COLUMN_EMAIL_SIZE is used to set the size of the email string
 #define COLUMN_USERNAME_SIZE 32
 #define COLUMN_EMAIL_SIZE 255
+// Tables contain rows
+// Each row contains an id, a username, and an email
+// Below is the structure of each row
+typedef struct {
+  uint32_t id;
+  char username[COLUMN_USERNAME_SIZE];
+  char email[COLUMN_EMAIL_SIZE];
+} Row;
+
 // Define a compact representation of a row
 #define size_of_attribute(Struct, Attribute) sizeof(((Struct*)0)->Attribute)
 // Define the number of pages allowed per table
@@ -55,15 +64,6 @@ typedef enum {
   STATEMENT_INSERT,
   STATEMENT_SELECT
 } StatementType;
-
-// Create a type to define the row
-// That will be accepted by the 
-// insert statement
-typedef struct {
-  uint32_t id;
-  char username[COLUMN_USERNAME_SIZE];
-  char email[COLUMN_EMAIL_SIZE];
-} Row;
 
 // Create type to classify statement
 // to determine preparation success or failure
@@ -124,9 +124,13 @@ void* row_slot(Table* table, uint32_t row_num);
 Table* new_table();
 // Release the table memory
 void free_table(Table* table);
+// Print the row of the database
+void print_row(Row* row);
 
 int main(int argc, char* argv[])
 {
+  // DESCRIBE THIS CODE
+  Table* table = new_table();
   // Upon execution of the main function, the first thing we do
   // is create a new input buffer struct to use through the
   // the length of the program. This will create space in memory
@@ -175,6 +179,10 @@ int main(int argc, char* argv[])
         // just break from switch statement 
         // and execute statement below with execute_statement function
         break;
+      // DESCRIBE WHAT THIS CODE DOES
+      case (PREPARE_SYNTAX_ERROR):
+        printf("Syntax error. Could not parse statement.\n");
+        continue;
       // If unrecognized statement command
       case (PREPARE_UNRECOGNIZED_STATEMENT):
         // notify user of unrecognized command and continue
@@ -182,8 +190,14 @@ int main(int argc, char* argv[])
         continue;
     }
 
-    execute_statement(&statement);
-    printf("Executed.\n");
+    switch(execute_statement(&statement, table)) {
+      case (EXECUTE_SUCCESS):
+        printf("Executed.\n");
+        break;
+      case (EXECUTE_TABLE_FULL):
+        printf("Error: Table full.\n");
+        break;
+    }
   }
 }
 
@@ -346,4 +360,8 @@ void free_table(Table* table) {
     free(table->pages[i]);
   }
   free(table);
+}
+
+void print_row(Row* row) {
+  printf("(%d, %s, %s)\n", row->id, row->username, row->email);
 }
