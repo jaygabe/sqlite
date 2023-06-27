@@ -9,6 +9,17 @@
 // The COLUMN_EMAIL_SIZE is used to set the size of the email string
 #define COLUMN_USERNAME_SIZE 32
 #define COLUMN_EMAIL_SIZE 255
+// This function allows us to modify the size
+// of a struct in the future without requireing
+// us to change the code where ever the sizeof 
+// attribute is required. If we didn't have this
+// function, anytime we changed the attribute of
+// a struct, we would be required to manually update
+// the sizes everywhere in the code. This function
+// gives out code robustness and flexibility
+#define size_of_attribute(Struct, Attribute) sizeof(((Struct*)0)->Attribute)
+// Define the number of pages allowed per table
+#define TABLE_MAX_PAGES 100
 // Tables contain rows
 // Each row contains an id, a username, and an email
 // Below is the structure of each row
@@ -18,12 +29,12 @@ typedef struct {
   char email[COLUMN_EMAIL_SIZE];
 } Row;
 
-// Define a compact representation of a row
-#define size_of_attribute(Struct, Attribute) sizeof(((Struct*)0)->Attribute)
-// Define the number of pages allowed per table
-#define TABLE_MAX_PAGES 100
-
-// DEFINE AND DESCRIBE THE PURPOSE OF THIS
+// This enum represents the possible outcomes
+// of executing a database operation
+// Our execute functions will return one of these
+// EXECUTE_SUCCESS = 0
+// EXECUTE_TABLE_FULL = 1
+// EXECUTE_DUPLICATE_KEY = 2
 typedef enum {
   EXECUTE_SUCCESS,
   EXECUTE_TABLE_FULL,
