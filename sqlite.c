@@ -16,7 +16,7 @@
 // function, anytime we changed the attribute of
 // a struct, we would be required to manually update
 // the sizes everywhere in the code. This function
-// gives out code robustness and flexibility
+// gives our code robustness and flexibility
 #define size_of_attribute(Struct, Attribute) sizeof(((Struct*)0)->Attribute)
 // Define the number of pages allowed per table
 #define TABLE_MAX_PAGES 100
@@ -84,17 +84,39 @@ typedef struct {
   Row row_to_insert; // Only used by insert statement
 } Statement;
 
-// DESCRIBE WHY EACH ONE OF THESE CONSTANTS IS REQUIRED
+// This ID_SIZE constant uses the size_of_attribute function 
+// to determine the size of the id property of the Row struct 
+// in memory
 const uint32_t ID_SIZE = size_of_attribute(Row, id);
+// This USERNAME_SIZE constant uses the size_of_attribute function
+// to determine the size of the email property of the Row struct in
+// in memory
 const uint32_t USERNAME_SIZE = size_of_attribute(Row, username);
+// This EMAIL_SIZE constant uses the size_of_attribute function
+// to determine the size of the email attribute of the Row Struct
 const uint32_t EMAIL_SIZE = size_of_attribute(Row, email);
+// ID_OFFSET specifies the starting byte position of the 'id' 
+// field within a serialized row.
 const uint32_t ID_OFFSET = 0;
+// USERNAME_OFFSET specifies the starting byte position of the 
+// `username` field within a serialized row
 const uint32_t USERNAME_OFFSET = ID_OFFSET + ID_SIZE;
+// EMAIL_OFFSET specifies the starting byte position of the `email`
+// field within a serialized row
 const uint32_t EMAIL_OFFSET = USERNAME_OFFSET + USERNAME_SIZE;
+// ROW_SIZE creates a constant using the attributes of the Row
+// Struct to determine th esize of each row
 const uint32_t ROW_SIZE = ID_SIZE + USERNAME_SIZE + EMAIL_SIZE;
-// Define some constants to describe tables, pages, and rows
+// This constant specifies that each page in the database will be
+// 4096 bytes. This size is chosen because it matches the block size
+// used by many file systems and storage devices, making it efficient
+// for I/O operations
 const uint32_t PAGE_SIZE = 4096;
+// This constant calculates the number of rows that can fit on a single
+// page. It assumes that each row will occupy `ROW_SIZE` bytes
 const uint32_t ROWS_PER_PAGE = PAGE_SIZE / ROW_SIZE;
+// This constant sets a limit on the number of rows that a table can contain
+// It is calcualted based on the maximum number of pages allocated for the table
 const uint32_t TABLE_MAX_ROWS = ROWS_PER_PAGE * TABLE_MAX_PAGES;
 
 // Define a struct to represent a table
