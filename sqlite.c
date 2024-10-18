@@ -138,7 +138,7 @@ void read_input(InputBuffer* input_buffer);
 // Free the memory used by the input_buffer
 void close_input_buffer(InputBuffer* input_buffer);
 // Handle the built-in commands of sqlite
-MetaCommandResult do_meta_command(InputBuffer* input_buffer);
+MetaCommandResult do_meta_command(InputBuffer* input_buffer, Table *table);
 // Handle the SQL commands
 PrepareResult prepare_statement(InputBuffer* input_buffer, Statement* statement);
 // Execute the INSERT command
@@ -187,7 +187,7 @@ int main(int argc, char* argv[])
       // META_COMMAND_SUCCESS
       // or
       // META_COMMAND_UNRECOGNIZED_COMMAND
-      switch (do_meta_command(input_buffer)) {
+      switch (do_meta_command(input_buffer, table)) {
         case (META_COMMAND_SUCCESS):
           // If success, continue
           continue;
@@ -286,9 +286,10 @@ void close_input_buffer(InputBuffer* input_buffer) {
 }
 
 // DESCRIBE THIS FUNCTION
-MetaCommandResult do_meta_command(InputBuffer* input_buffer) {
+MetaCommandResult do_meta_command(InputBuffer* input_buffer, Table *table) {
   if (strcmp(input_buffer->buffer, ".exit") == 0) {
     close_input_buffer(input_buffer);
+    free_table(table);
     exit(EXIT_SUCCESS);
   } else {
     return META_COMMAND_UNRECOGNIZED_COMMAND;

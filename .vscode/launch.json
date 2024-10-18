@@ -8,8 +8,8 @@
       "args": [],
       "stopAtEntry": false,
       "externalConsole": true,
-      "cwd": "c:/Users/omesa/automateearth/C/database",
-      "program": "c:/Users/omesa/automateearth/C/database/build/Debug/outDebug",
+      "cwd": "c:/Users/jim/projects/sqlite",
+      "program": "c:/Users/jim/projects/sqlite/build/Debug/outDebug",
       "MIMode": "gdb",
       "miDebuggerPath": "gdb",
       "setupCommands": [
